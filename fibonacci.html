@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta http-equiv="PRAGMA" content="NO-CACHE">
+		<meta http-equiv="CACHE-CONTROL" content="NO-CACHE">
+		<meta http-equiv="EXPIRES" content="Sun, 7 Dec 1941 17:42:00 GMT">
+		<meta http-equiv="ROBOTS" content="NONE">
+		<meta http-equiv="GOOGLEBOT" content="NOARCHIVE">
+		<meta http-equiv="Content-Script-Type" content="text/javascript">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="Content-Style-Type" content="text/css">
+		<meta name="author" content="Jason Cust">
+
+		<style>
+			@charset "UTF-8";
+
+			@-ms-viewport {
+			  width: device-width;
+			}
+
+			@viewport {
+			  width: device-width;
+			}
+
+			iframe {
+				margin-top: .5em;
+				border-style: none;
+				width: 100%;
+			}
+
+			.saveLink {
+				visibility: hidden;
+			}
+
+		</style>
+
+		<script type="text/javascript">
+			'use strict'; // Declaration for ECMA5 compliant JavaScript engines
+
+			var OUTPUT_FORMAT,
+			DOC_TITLE = 'Fibonacci Sequence',
+			DOC_DESC = 'This is a fibonacci sequence up to and including X.' ,
+			getRadioVal = function ( el ) {
+				var i,
+				len = el.length;
+
+				for ( i = 0; i < len; i++ ) {
+					if ( el[ i ].checked) {
+						return el[ i ].value;
+					}
+				}
+			},
+			getFibSequence = ( function () {
+				var getFibByIndex = ( function () {
+					var sq5 = Math.sqrt ( 5 ),
+					gm = ( 1 + sq5 ) / 2;
+
+					return function ( x ) {
+						return Math.round( Math.pow( gm, x ) / sq5 );
+					};
+				})();
+
+				return function( x ) {
+					var fibs = [],
+					fib;
+
+					for ( fib = 0; fib <= x; fib = getFibByIndex( fibs.length ) ) {
+						fibs.push( fib );
+					}
+
+					return fibs;
+				};	
+			})(),
+			dispFibSeq = function () {
+				var doc,
+				seq,
+				title,
+				desc,
+				seqEl,
+				numEl,
+				srcNode,
+				newNode,
+				x = document.fibSeq.fibMax.value,
+				frame = document.getElementById( 'outputFrame' ),
+				destDocument = frame.contentDocument;
+
+				OUTPUT_FORMAT = getRadioVal( document.fibSeq.outputFormat );
+
+				if ( x > 0 && x < 32000 ) {
+					seq = getFibSequence( x );
+
+					if ( OUTPUT_FORMAT === 'html' ) {
+						doc = document.implementation.createHTMLDocument( DOC_TITLE );
+						title = doc.createElement( 'h3' );
+						title.textContent = 'Fibonacci Sequence';
+						doc.body.appendChild( title );
+						desc = doc.createElement( 'h5' );
+						desc.textContent = DOC_DESC.replace( 'X', x );
+						doc.body.appendChild( desc );
+
+						seq.map( function( i ) {
+							seqEl = doc.createElement( 'p' );
+							seqEl.textContent = i;
+							doc.body.appendChild( seqEl );
+						});
+					}
+					else if ( OUTPUT_FORMAT === 'xml' ) {
+						doc = document.implementation.createDocument( 'http://www.w3.org/1999/xhtml', 'xml', null );
+						title = doc.createElement( 'title' );
+						title.textContent = DOC_TITLE;
+						doc.documentElement.appendChild( title );
+						desc = doc.createElement( 'description' );
+						desc.textContent = DOC_DESC.replace( 'X', x );
+						doc.documentElement.appendChild( desc );
+
+						seqEl = doc.createElement( 'sequence' );
+
+						seq.map( function( i ) {
+							numEl = doc.createElement( 'number' );
+							numEl.textContent = i;
+							seqEl.appendChild( numEl );
+						});
+
+						doc.documentElement.appendChild( seqEl );
+					}
+					else {
+						doc = document.implementation.createHTMLDocument( DOC_TITLE );
+						doc.body.textContent = JSON.stringify( seq, null, '\t' );
+					}
+
+					srcNode = doc.documentElement;
+					newNode = destDocument.importNode(srcNode, true);
+					destDocument.replaceChild( newNode, destDocument.documentElement );
+				}
+
+				document.getElementById( 'saveLink' ).className = '';
+
+				return false;
+			},
+			saveFrame = function() {
+				var serializer,
+				uriContent,
+				str,
+				doc = document.getElementById( 'outputFrame' ).contentDocument;
+
+				if ( OUTPUT_FORMAT.match( /^(ht|x)ml$/ ) ) {
+					serializer = new XMLSerializer();
+					str = s.serializeToString( doc );
+				}
+				else {
+					str = doc.body.textContent;
+				}
+
+				uriContent = "data:application/octet-stream," + encodeURIComponent( str );
+				window.open( uriContent, DOC_TITLE );
+			}
+		</script>
+	</head>
+	<body>
+		<form name="fibSeq" onsubmit="return dispFibSeq()">
+			<fieldset>
+				<legend>Fibonacci Sequence</legend>
+				<label for="fibMax">Max:</label>
+					<input type="number" id="fibMax" name="fibMax" placeholder="31999" min="1" max="31999" autofocus required><br>
+				<label>Output Format:</label>
+					<input type="radio" name="outputFormat" value="html" id="outputFormatH"><label for="outputFormatH">HTML</label>
+					<input type="radio" name="outputFormat" value="xml" id="outputFormatX"><label for="outputFormatX">XML</label>
+					<input type="radio" name="outputFormat" value="json" id="outputFormatJ" checked><label for="outputFormatJ">JSON</label><br>
+				<input type="submit" name="getFib" value="Get Sequence">
+			</fieldset>
+		</form>
+		<p id="saveLink" class="saveLink">Click <a href="javascript:saveFrame();">here</a> to save the output.</p>
+		<iframe id="outputFrame" src="about:blank"></iframe>
+	</body>
+</html>
