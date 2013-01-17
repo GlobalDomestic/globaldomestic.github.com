@@ -138,7 +138,7 @@
 
 				if ( OUTPUT_FORMAT.match( /^(ht|x)ml$/ ) ) {
 					serializer = new XMLSerializer();
-					str = s.serializeToString( doc );
+					str = serializer.serializeToString( doc );
 				}
 				else {
 					str = doc.body.textContent;
