@@ -24,9 +24,7 @@
 		<script type="text/javascript">
 			'use strict'; // Declaration for ECMA5 compliant JavaScript engines
 
-			var DOC_TITLE = 'Fibonacci Sequence',
-			DOC_DESC = 'This is a fibonacci sequence up to and including X.',
-			getRadioVal = function ( el ) {
+			var getRadioVal = function ( el ) {
 				var i,
 				len = el.length;
 
@@ -41,49 +39,52 @@
 					var sq5 = Math.sqrt ( 5 ),
 					gm = ( 1 + sq5 ) / 2;
 
-					return function ( x ) {
-						return Math.round( Math.pow( gm, x ) / sq5 );
+					return function ( index ) {
+						return Math.round( Math.pow( gm, index ) / sq5 );
 					};
 				})();
 
-				return function( x ) {
-					var fibs = [],
+				return function( max ) {
+					var fibSeq = [],
 					fib;
 
-					for ( fib = 0; fib <= x; fib = getFibByIndex( fibs.length ) ) {
-						fibs.push( fib );
+					for ( fib = 0; fib <= max; fib = getFibByIndex( fibSeq.length ) ) {
+						fibSeq.push( fib );
 					}
 
-					return fibs;
+					return fibSeq;
 				};	
 			})(),
 			printOutput = function ( oLoc, str, docTitle ) {
+				var oDisp = document.getElementById( 'outputDisplay' );
+
 				if ( oLoc === 'file' ) {
+					oDisp.textContent = '';
+
 					var uriContent = "data:application/octet-stream," + encodeURIComponent( str );
 					window.open( uriContent, docTitle );
 				}
 				else {
-					document.getElementById( 'outputDisplay' ).textContent = str;
+					oDisp.textContent = str;
 				}
 			},
-			genFibStr = function ( max, fibSeq, oFormat ) {
+			genFibStr = function ( fibSeq, oFormat, docTitle, docDesc ) {
 				var serializer = new XMLSerializer(),
 				doc,
-				title,
-				desc,
+				titleEl,
+				descEl,
 				seqEl,
-				numEl,
-				docDesc = DOC_DESC.replace( 'X', max );
+				numEl;
 
 				if ( oFormat.match( /^(ht|x)ml$/ ) ) {
 					if ( oFormat === 'html' ) {
-						doc = document.implementation.createHTMLDocument( DOC_TITLE );
-						title = doc.createElement( 'h3' );
-						title.textContent = DOC_TITLE;
-						doc.body.appendChild( title );
-						desc = doc.createElement( 'h5' );
-						desc.textContent = docDesc;
-						doc.body.appendChild( desc );
+						doc = document.implementation.createHTMLDocument( docTitle );
+						titleEl = doc.createElement( 'h3' );
+						titleEl.textContent = docTitle;
+						doc.body.appendChild( titleEl );
+						descEl = doc.createElement( 'h5' );
+						descEl.textContent = docDesc;
+						doc.body.appendChild( descEl );
 
 						fibSeq.map( function( i ) {
 							numEl = doc.createElement( 'p' );
@@ -93,12 +94,12 @@
 					}
 					else {
 						doc = document.implementation.createDocument( 'http://www.w3.org/1999/xhtml', 'xml', null );
-						title = doc.createElement( 'title' );
-						title.textContent = DOC_TITLE;
-						doc.documentElement.appendChild( title );
-						desc = doc.createElement( 'description' );
-						desc.textContent = docDesc;
-						doc.documentElement.appendChild( desc );
+						titleEl = doc.createElement( 'title' );
+						titleEl.textContent = docTitle;
+						doc.documentElement.appendChild( titleEl );
+						descEl = doc.createElement( 'description' );
+						descEl.textContent = docDesc;
+						doc.documentElement.appendChild( descEl );
 						seqEl = doc.createElement( 'sequence' );
 						doc.documentElement.appendChild( seqEl );
 
@@ -112,7 +113,7 @@
 					return serializer.serializeToString( doc );
 				}
 				else if ( oFormat === 'json' ) {
-					return JSON.stringify( fibSeq, null, '\t' );
+					return JSON.stringify( { title: docTitle, description: docDesc, sequence: fibSeq }, null, '\t' );
 				}
 				else {
 					return fibSeq.join(', ');
@@ -121,13 +122,16 @@
 			runFibSeq = function () {
 				var fibMax = document.fibSeq.fibMax.value,
 				oFormat = getRadioVal( document.fibSeq.outputFormat ),
-				oLocation = getRadioVal( document.fibSeq.outputLocation );
+				oLocation = getRadioVal( document.fibSeq.outputLocation ),
+				docTitle = 'Fibonacci Sequence',
+				docDesc = 'This is a fibonacci sequence up to and including X.',
+				inputError = 'Input Max must be an integer between 1 and 31999.';
 
 				if ( fibMax > 0 && fibMax < 32000 && fibMax % 1 === 0 ) {
-					printOutput( oLocation, genFibStr( fibMax, getFibSequence( fibMax ), oFormat ), DOC_TITLE );
+					printOutput( oLocation, genFibStr( getFibSequence( fibMax ), oFormat, docTitle, docDesc.replace( 'X', fibMax ) ), docTitle );
 				}
 				else {
-					printOutput( 'screen', 'Input Max must be an integer between 1 and 31999.' );
+					printOutput( 'screen', inputError );
 				}
 
 				return false;
