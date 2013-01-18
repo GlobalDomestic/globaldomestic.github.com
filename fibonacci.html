@@ -123,8 +123,11 @@
 				oFormat = getRadioVal( document.fibSeq.outputFormat ),
 				oLocation = getRadioVal( document.fibSeq.outputLocation );
 
-				if ( fibMax > 0 && fibMax < 32000 ) {
+				if ( fibMax > 0 && fibMax < 32000 && fibMax % 1 === 0 ) {
 					printOutput( oLocation, genFibStr( fibMax, getFibSequence( fibMax ), oFormat ), DOC_TITLE );
+				}
+				else {
+					printOutput( 'screen', 'Input Max must be an integer between 1 and 31999.' );
 				}
 
 				return false;
