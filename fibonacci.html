@@ -111,8 +111,11 @@
 
 					return serializer.serializeToString( doc );
 				}
-				else {
+				else if ( oFormat === 'json' ) {
 					return JSON.stringify( fibSeq, null, '\t' );
+				}
+				else {
+					return fibSeq.join(', ');
 				}
 			},
 			runFibSeq = function () {
@@ -135,9 +138,10 @@
 				<label for="fibMax">Max:</label>
 					<input type="number" id="fibMax" name="fibMax" placeholder="Enter a value from 1 to 31999" min="1" max="31999" autofocus required><br>
 				<label>Output Format:</label>
+					<input type="radio" name="outputFormat" value="text" id="outputFormatT" checked><label for="outputFormatT">Text</label>
 					<input type="radio" name="outputFormat" value="html" id="outputFormatH"><label for="outputFormatH">HTML</label>
 					<input type="radio" name="outputFormat" value="xml" id="outputFormatX"><label for="outputFormatX">XML</label>
-					<input type="radio" name="outputFormat" value="json" id="outputFormatJ" checked><label for="outputFormatJ">JSON</label><br>
+					<input type="radio" name="outputFormat" value="json" id="outputFormatJ"><label for="outputFormatJ">JSON</label><br>
 				<label>Output Location:</label>
 					<input type="radio" name="outputLocation" value="screen" id="outputLocationS" checked><label for="outputFormatS">Screen</label>
 					<input type="radio" name="outputLocation" value="file" id="outputLocationF"><label for="outputFormatF">File</label><br>
