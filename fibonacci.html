@@ -22,7 +22,158 @@
 		</style>
 
 		<script type="text/javascript">
-			'use strict'; // Declaration for ECMA5 compliant JavaScript engines
+			( function ( win, doc, undef ) {
+				'use strict'; // Declaration for ECMA5 compliant JavaScript engines
+
+				var isEmpty = function ( obj ) {
+					// obj == undefined --> ( obj === undefined || obj === null )
+					if ( obj == undef || obj === '' ) {
+						return true;
+					}
+				},
+				genFibSequence = ( function () {
+					var getFibByIndex = ( function () {
+						var sq5 = Math.sqrt ( 5 ),
+						gm = ( 1 + sq5 ) / 2;
+
+						return function ( index ) {
+							return Math.round( Math.pow( gm, index ) / sq5 );
+						};
+					})();
+
+					return function( max ) {
+						var fibSeq = [],
+						fib;
+
+						for ( fib = 0; fib <= max; fib = getFibByIndex( fibSeq.length ) ) {
+							fibSeq.push( fib );
+						}
+
+						return fibSeq;
+					};	
+				})(),
+				genOutputStr = function ( fibSeq, oFormat, docTitle, docDesc ) {
+					var serializer = new XMLSerializer(),
+					doc,
+					titleEl,
+					descEl,
+					seqEl,
+					numEl;
+
+					if ( oFormat.match( /^(ht|x)ml$/ ) ) {
+						if ( oFormat === 'html' ) {
+							doc = document.implementation.createHTMLDocument( docTitle );
+							titleEl = doc.createElement( 'h3' );
+							titleEl.textContent = docTitle;
+							doc.body.appendChild( titleEl );
+							descEl = doc.createElement( 'h5' );
+							descEl.textContent = docDesc;
+							doc.body.appendChild( descEl );
+
+							fibSeq.map( function( i ) {
+								numEl = doc.createElement( 'p' );
+								numEl.textContent = i;
+								doc.body.appendChild( numEl );
+							});
+						}
+						else {
+							doc = document.implementation.createDocument( 'http://www.w3.org/1999/xhtml', 'xml', null );
+							titleEl = doc.createElement( 'title' );
+							titleEl.textContent = docTitle;
+							doc.documentElement.appendChild( titleEl );
+							descEl = doc.createElement( 'description' );
+							descEl.textContent = docDesc;
+							doc.documentElement.appendChild( descEl );
+							seqEl = doc.createElement( 'sequence' );
+							doc.documentElement.appendChild( seqEl );
+
+							fibSeq.map( function( i ) {
+								numEl = doc.createElement( 'number' );
+								numEl.textContent = i;
+								seqEl.appendChild( numEl );
+							});
+						}
+
+						return serializer.serializeToString( doc );
+					}
+					else if ( oFormat === 'json' ) {
+						return JSON.stringify( { title: docTitle, description: docDesc, sequence: fibSeq }, null, '\t' );
+					}
+					else {
+						return fibSeq.join(', ');
+					}
+				},
+				init = function ( max ) {
+					var FIB_MIN = 1,
+					FIB_MAX = 31999,
+					inputError = 'Input max sequence value must be an integer between ' + FIB_MIN + ' and ' + FIB_MAX + '.';
+
+					if ( isEmpty( max ) ) {
+						return this._max;
+					}
+					else {
+						if ( max % 1 !== 0 || max < FIB_MIN || max > FIB_MAX ) {
+							throw new SyntaxError( inputError );
+						}
+
+						this._max = max;
+						this._sequence = genFibSequence( max );
+
+						return this;
+					}
+				},
+				valueByIndex = function ( index ) {
+					if ( !isEmpty( index ) ) {
+						return this._sequence[ index ];
+					}
+				},
+				firstValue = function () {
+					return this._sequence[ 0 ];
+				},
+				lastValue = function () {
+					return this._sequence[ this._sequence.length - 1 ];
+				},
+				sequence = function () {
+					return this._sequence;
+				},
+				fibSeqObj = function () { init.apply( this, arguments ); },
+				fibObj = function () { fibSeqObj.apply( this, arguments ); };
+
+				fibSeqObj.prototype = {
+					max: function () { return init.apply( this, arguments ); },
+					valueByIndex: function () { return valueByIndex.apply( this, arguments ); },
+					firstValue: function () { return firstValue.apply( this, arguments ); },
+					lastValue: function () { return lastValue.apply( this, arguments ); },
+					sequence: function () { return sequence.apply( this, arguments ); }
+				};
+
+				fibObj.prototype = Object.create( fibSeqObj.prototype );
+				fibObj.prototype.constructor = fibObj;
+				fibObj.prototype.display = function ( elID, format, docTitle, docDesc ) {
+					var matches = isEmpty( format ) || format.toString().toLowerCase().match( /^(html|xml|json|text)$/ );
+					var oDisp = isEmpty( elID ) || document.getElementById( elID.toString() );
+
+					if ( isEmpty( oDisp ) || isEmpty( matches ) ) {
+						throw new SyntaxError( 'The output HTML element ID and the format (HTML, XML, JSON, Text) must be specified.' );
+					}
+
+					oDisp.textContent =  genOutputStr( this.sequence(), matches[ 1 ], docTitle, docDesc ) ;
+				};
+				fibObj.prototype.save = function ( type, docTitle, docDesc ) {
+					var matches = isEmpty( type ) || type.toString().toLowerCase().match( /^(html|xml|json|text)$/ );
+
+					if ( isEmpty( matches ) ) {
+						throw new SyntaxError( 'The output format (HTML, XML, JSON, Text) must be specified.' );
+					}
+
+					var uriContent = "data:application/octet-stream," + encodeURIComponent( genOutputStr( this.sequence(), matches[ 1 ], docTitle, docDesc ) );
+					window.open( uriContent, docTitle );
+				};
+
+				// Expose objects to win object
+				win[ 'FibonacciSequence' ] = fibSeqObj;
+				win[ 'Fibonacci' ] = fibObj;
+			})( window, document );
 
 			var getRadioVal = function ( el ) {
 				var i,
@@ -34,108 +185,24 @@
 					}
 				}
 			},
-			getFibSequence = ( function () {
-				var getFibByIndex = ( function () {
-					var sq5 = Math.sqrt ( 5 ),
-					gm = ( 1 + sq5 ) / 2;
-
-					return function ( index ) {
-						return Math.round( Math.pow( gm, index ) / sq5 );
-					};
-				})();
-
-				return function( max ) {
-					var fibSeq = [],
-					fib;
-
-					for ( fib = 0; fib <= max; fib = getFibByIndex( fibSeq.length ) ) {
-						fibSeq.push( fib );
-					}
-
-					return fibSeq;
-				};	
-			})(),
-			printOutput = function ( oLoc, str, docTitle ) {
-				var oDisp = document.getElementById( 'outputDisplay' );
-
-				if ( oLoc === 'file' ) {
-					oDisp.textContent = '';
-
-					var uriContent = "data:application/octet-stream," + encodeURIComponent( str );
-					window.open( uriContent, docTitle );
-				}
-				else {
-					oDisp.textContent = str;
-				}
-			},
-			genFibStr = function ( fibSeq, oFormat, docTitle, docDesc ) {
-				var serializer = new XMLSerializer(),
-				doc,
-				titleEl,
-				descEl,
-				seqEl,
-				numEl;
-
-				if ( oFormat.match( /^(ht|x)ml$/ ) ) {
-					if ( oFormat === 'html' ) {
-						doc = document.implementation.createHTMLDocument( docTitle );
-						titleEl = doc.createElement( 'h3' );
-						titleEl.textContent = docTitle;
-						doc.body.appendChild( titleEl );
-						descEl = doc.createElement( 'h5' );
-						descEl.textContent = docDesc;
-						doc.body.appendChild( descEl );
-
-						fibSeq.map( function( i ) {
-							numEl = doc.createElement( 'p' );
-							numEl.textContent = i;
-							doc.body.appendChild( numEl );
-						});
-					}
-					else {
-						doc = document.implementation.createDocument( 'http://www.w3.org/1999/xhtml', 'xml', null );
-						titleEl = doc.createElement( 'title' );
-						titleEl.textContent = docTitle;
-						doc.documentElement.appendChild( titleEl );
-						descEl = doc.createElement( 'description' );
-						descEl.textContent = docDesc;
-						doc.documentElement.appendChild( descEl );
-						seqEl = doc.createElement( 'sequence' );
-						doc.documentElement.appendChild( seqEl );
-
-						fibSeq.map( function( i ) {
-							numEl = doc.createElement( 'number' );
-							numEl.textContent = i;
-							seqEl.appendChild( numEl );
-						});
-					}
-
-					return serializer.serializeToString( doc );
-				}
-				else if ( oFormat === 'json' ) {
-					return JSON.stringify( { title: docTitle, description: docDesc, sequence: fibSeq }, null, '\t' );
-				}
-				else {
-					return fibSeq.join(', ');
-				}
-			},
 			runFibSeq = function () {
 				var fibMax = document.fibSeq.fibMax.value,
 				oFormat = getRadioVal( document.fibSeq.outputFormat ),
 				oLocation = getRadioVal( document.fibSeq.outputLocation ),
+				oDisplay = 'outputDisplay',
 				docTitle = 'Fibonacci Sequence',
-				docDesc = 'This is a fibonacci sequence up to and including X.',
-				inputError = 'Input Max must be an integer between 1 and 31999.';
+				docDesc = 'This is a fibonacci sequence up to and including ' + fibMax + '.',
+				fib = new Fibonacci( fibMax );
 
-				if ( fibMax > 0 && fibMax < 32000 && fibMax % 1 === 0 ) {
-					printOutput( oLocation, genFibStr( getFibSequence( fibMax ), oFormat, docTitle, docDesc.replace( 'X', fibMax ) ), docTitle );
+				if ( oLocation === 'file' ) {
+					fib.save( oFormat, docTitle, docDesc );
 				}
 				else {
-					printOutput( 'screen', inputError );
+					fib.display( oDisplay, oFormat, docTitle, docDesc );
 				}
 
 				return false;
-			};
+			}
 		</script>
 	</head>
 	<body>
